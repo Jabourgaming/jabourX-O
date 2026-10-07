@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090f18">
+<style>[hidden]{display:none!important}</style>
+<title>Jabour gaming XO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Reem+Kufi:wght@500;700&display=swap">
+<style>
+/* Layout: one centered column, setup card first, then scoreboard over a 3x3 board; the win modal rises over it */
+:root {
+  --bg: #090f18;
+  --bg-2: #0e1826;
+  --surface: #121e2f;
+  --surface-2: #192941;
+  --line: #243751;
+  --fg: #eef3f8;
+  --muted: #8ea2b9;
+  --x: #f5b53d;
+  --x-soft: rgba(245, 181, 61, 0.16);
+  --o: #33d8c5;
+  --o-soft: rgba(51, 216, 197, 0.16);
+  --win: #ffffff;
+  --font-display: "Reem Kufi", "Cairo", system-ui, sans-serif;
+  --font-body: "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 18px;
+  background:
+    radial-gradient(600px 420px at 85% -5%, rgba(51, 216, 197, 0.13), transparent 70%),
+    radial-gradient(560px 420px at 8% 105%, rgba(245, 181, 61, 0.12), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.22;
+  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+}
+.app {
+  position: relative;
+  min-height: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.screen { display: flex; flex-direction: column; gap: 18px; animation: rise 0.5s ease both; }
+
+/* brand */
+.brand { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.brand .logo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  direction: ltr;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.brand .logo .jg { font-size: clamp(30px, 9vw, 40px); display: block; }
+.brand .logo .xo { font-size: clamp(64px, 20vw, 92px); display: block; letter-spacing: 0.06em; }
+.brand .logo .xo i { font-style: normal; }
+.brand .logo .xo .lx { color: var(--x); text-shadow: 0 0 28px rgba(245, 181, 61, 0.55); }
+.brand .logo .xo .lo { color: var(--o); text-shadow: 0 0 28px rgba(51, 216, 197, 0.55); }
+.brand .tag { color: var(--muted); font-size: 14px; margin: 0; }
+.brand.small { flex-direction: row; justify-content: center; gap: 10px; }
+.brand.small .logo { display: flex; align-items: baseline; gap: 8px; }
+.brand.small .logo .jg { font-size: 20px; }
+.brand.small .logo .xo { font-size: 30px; letter-spacing: 0.04em; }
+
+/* setup */
+.card {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+}
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field label { font-size: 14px; color: var(--muted); font-weight: 600; }
+.input-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
+.badge {
+  position: absolute;
+  inset-inline-start: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  direction: ltr;
+}
+.badge.x { background: var(--x-soft); color: var(--x); }
+.badge.o { background: var(--o-soft); color: var(--o); }
+.input-wrap input {
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  padding-inline: 56px 16px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-wrap input::placeholder { color: #566a82; font-weight: 400; }
+.input-wrap.x input:focus { border-color: var(--x); box-shadow: 0 0 0 4px var(--x-soft); }
+.input-wrap.o input:focus { border-color: var(--o); box-shadow: 0 0 0 4px var(--o-soft); }
+
+.btn {
+  font: inherit;
+  font-weight: 800;
+  font-size: 17px;
+  height: 54px;
+  padding-inline: 20px;
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
+  color: #08111b;
+  background: linear-gradient(100deg, var(--x), var(--o));
+  box-shadow: 0 14px 30px -14px rgba(51, 216, 197, 0.7);
+  transition: transform 0.15s, filter 0.2s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: scale(0.98); }
+.btn:focus-visible, .ghost:focus-visible, .cell:focus-visible, .icon-btn:focus-visible, .input-wrap input:focus-visible {
+  outline: 3px solid var(--fg);
+  outline-offset: 3px;
+}
+.ghost {
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  height: 48px;
+  padding-inline: 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--fg);
+  background: transparent;
+  border: 1.5px solid var(--line);
+  transition: background 0.2s, border-color 0.2s;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ghost:hover { background: var(--surface-2); border-color: #35506f; }
+
+/* game header */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.topbar .brand { flex: 1; }
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.icon-btn[aria-pressed="true"] { color: var(--fg); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* scoreboard */
+.scoreboard { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; }
+.player {
+  min-width: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.player .pm { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; direction: ltr; }
+.player .pn { font-weight: 700; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player .ps { font-weight: 800; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.player.x .pm, .player.x .ps { color: var(--x); }
+.player.o .pm, .player.o .ps { color: var(--o); }
+.player.on.x { border-color: var(--x); background: linear-gradient(180deg, var(--x-soft), var(--surface)); box-shadow: 0 0 0 4px var(--x-soft); transform: translateY(-2px); }
+.player.on.o { border-color: var(--o); background: linear-gradient(180deg, var(--o-soft), var(--surface)); box-shadow: 0 0 0 4px var(--o-soft); transform: translateY(-2px); }
+.mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 44px;
+}
+.mid b { font-size: 20px; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+.status { text-align: center; font-weight: 700; font-size: 17px; min-height: 28px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.status .dot { font-family: var(--font-display); font-size: 20px; direction: ltr; }
+.status .dot.x { color: var(--x); }
+.status .dot.o { color: var(--o); }
+
+/* board */
+.board-wrap { position: relative; width: min(100%, 380px); margin-inline: auto; }
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  direction: ltr;
+}
+.cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 18px;
+  background: var(--bg-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.2s, transform 0.15s;
+}
+.cell:hover:not(:disabled):not(.filled) { background: #14233a; transform: translateY(-2px); }
+.cell:disabled { cursor: default; }
+.cell.dim { opacity: 0.35; }
+.cell svg { width: 70%; height: 70%; overflow: visible; }
+.cell .mk { fill: none; stroke-width: 11; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.4s ease forwards; }
+.cell .mk.b { animation-delay: 0.18s; }
+.cell.x .mk { stroke: var(--x); filter: drop-shadow(0 0 7px rgba(245, 181, 61, 0.65)); }
+.cell.o .mk { stroke: var(--o); filter: drop-shadow(0 0 7px rgba(51, 216, 197, 0.65)); animation-duration: 0.5s; }
+.cell.hover-x:hover:not(.filled):not(:disabled)::after,
+.cell.hover-o:hover:not(.filled):not(:disabled)::after { content: ""; }
+.winline { position: absolute; inset: 0; pointer-events: none; width: 100%; height: 100%; }
+.winline line {
+  stroke: var(--win);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 0.55s ease 0.15s forwards;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85));
+}
+
+.actions { display: flex; gap: 10px; }
+
+/* modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  background: rgba(5, 9, 15, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade 0.3s ease both;
+}
+.modal-card {
+  width: min(100%, 380px);
+  text-align: center;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1.5px solid var(--line);
+  border-radius: 28px;
+  padding: 28px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 40px 90px -30px #000;
+  animation: pop 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.modal-card.xwin { border-color: var(--x); box-shadow: 0 0 0 5px var(--x-soft), 0 40px 90px -30px #000; }
+.modal-card.owin { border-color: var(--o); box-shadow: 0 0 0 5px var(--o-soft), 0 40px 90px -30px #000; }
+.trophy { width: 84px; height: 84px; }
+.modal-card .kicker { margin: 0; color: var(--muted); font-weight: 700; font-size: 15px; letter-spacing: 0.03em; }
+.modal-card .winner {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(34px, 11vw, 48px);
+  line-height: 1.15;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.modal-card.xwin .winner { color: var(--x); text-shadow: 0 0 26px rgba(245, 181, 61, 0.45); }
+.modal-card.owin .winner { color: var(--o); text-shadow: 0 0 26px rgba(51, 216, 197, 0.45); }
+.modal-card .sub { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+.modal-card .btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.modal-card .btns .btn { width: 100%; }
+.modal-card .btns .ghost { width: 100%; flex: none; }
+
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.85) translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition: none !important; }
+}
+@media (max-width: 360px) {
+  .player .ps { font-size: 26px; }
+  .scoreboard { gap: 6px; }
+}
+</style>
+
+<main class="app" dir="rtl" lang="ar">
+  <section id="setup" class="screen">
+    <div class="brand">
+      <div class="logo">
+        <span class="jg">Jabour gaming</span>
+        <span class="xo"><i class="lx">X</i><i class="lo">O</i></span>
+      </div>
+      <p class="tag">اكتب أسماء اللاعبين وابدأوا المباراة</p>
+    </div>
+    <form class="card" id="setupForm" autocomplete="off">
+      <div class="field">
+        <label for="nameX">اللاعب الأول</label>
+        <div class="input-wrap x">
+          <span class="badge x" aria-hidden="true">X</span>
+          <input id="nameX" name="nameX" type="text" maxlength="14" placeholder="مثلا: مصطفى" enterkeyhint="next">
+        </div>
+      </div>
+      <div class="field">
+        <label for="nameO">اللاعب الثاني</label>
+        <div class="input-wrap o">
+          <span class="badge o" aria-hidden="true">O</span>
+          <input id="nameO" name="nameO" type="text" maxlength="14" placeholder="مثلا: جبور" enterkeyhint="go">
+        </div>
+      </div>
+      <button class="btn" type="submit" id="startBtn">ابدأ المباراة</button>
+    </form>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="topbar">
+      <button class="icon-btn" id="soundBtn" type="button" aria-label="الصوت" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      </button>
+      <div class="brand small">
+        <div class="logo"><span class="jg">Jabour gaming</span><span class="xo"><i style="font-style:normal;color:var(--x)">X</i><i style="font-style:normal;color:var(--o)">O</i></span></div>
+      </div>
+      <span style="width:42px" aria-hidden="true"></span>
+    </div>
+
+    <div class="scoreboard" aria-live="polite">
+      <div class="player x on" id="pX">
+        <span class="pm">X</span>
+        <span class="pn" id="nX">لاعب ١</span>
+        <span class="ps" id="sX">0</span>
+      </div>
+      <div class="mid"><span>تعادل</span><b id="sD">0</b></div>
+      <div class="player o" id="pO">
+        <span class="pm">O</span>
+        <span class="pn" id="nO">لاعب ٢</span>
+        <span class="ps" id="sO">0</span>
+      </div>
+    </div>
+
+    <div class="status" id="status" aria-live="polite"></div>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board" id="board" role="grid" aria-label="لوحة اللعب"></div>
+      <svg class="winline" id="winline" aria-hidden="true"></svg>
+    </div>
+
+    <div class="actions">
+      <button class="ghost" id="againBtn" type="button">جولة جديدة</button>
+      <button class="ghost" id="namesBtn" type="button">تغيير الأسماء</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal-card" id="mCard">
+    <svg class="trophy" id="trophy" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe39a"/><stop offset="1" stop-color="#f0a323"/></linearGradient>
+      </defs>
+      <path d="M28 14h44v26c0 14-10 24-22 24S28 54 28 40z" fill="url(#tg)"/>
+      <path d="M28 20H14c0 16 6 24 16 26M72 20h14c0 16-6 24-16 26" fill="none" stroke="#f0a323" stroke-width="6" stroke-linecap="round"/>
+      <rect x="44" y="62" width="12" height="14" fill="#f0a323"/>
+      <rect x="32" y="76" width="36" height="10" rx="4" fill="url(#tg)"/>
+      <path d="M50 24l4.2 8.6 9.4 1.3-6.8 6.6 1.6 9.4L50 45.5l-8.4 4.4 1.6-9.4-6.8-6.6 9.4-1.3z" fill="#fff6d8" opacity=".9"/>
+    </svg>
+    <p class="kicker" id="mKicker">الفائز في المباراة</p>
+    <h2 class="winner" id="mTitle">—</h2>
+    <p class="sub" id="mSub"></p>
+    <div class="btns">
+      <button class="btn" id="mAgain" type="button">العب تاني</button>
+      <button class="ghost" id="mNames" type="button">تغيير الأسماء</button>
+    </div>
+  </div>
+</div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<script>
+(function () {
+  var LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = "http://www.w3.org/2000/svg";
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var st = {
+    names: { X: "", O: "" },
+    score: { X: 0, O: 0, D: 0 },
+    board: [], turn: "X", starter: "X", over: false, sound: true, timer: null
+  };
+
+  function nameOf(p) { return st.names[p] || (p === "X" ? "لاعب ١" : "لاعب ٢"); }
+
+  /* saved names */
+  try {
+    var saved = JSON.parse(localStorage.getItem("jabour-xo-names") || "null");
+    if (saved) { $("nameX").value = saved.X || ""; $("nameO").value = saved.O || ""; }
+  } catch (e) {}
+
+  /* sound */
+  var ac = null;
+  function tone(freq, dur, type, delay, vol) {
+    if (!st.sound) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var t = ac.currentTime + (delay || 0);
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  function sndMove(p) { tone(p === "X" ? 520 : 740, 0.12, "triangle"); }
+  function sndWin() { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.28, "triangle", i * 0.12, 0.14); }); }
+  function sndDraw() { tone(330, 0.18, "sine"); tone(262, 0.3, "sine", 0.16); }
+
+  $("soundBtn").addEventListener("click", function () {
+    st.sound = !st.sound;
+    this.setAttribute("aria-pressed", String(st.sound));
+    $("wave").style.display = st.sound ? "" : "none";
+    if (st.sound) tone(660, 0.1, "triangle");
+  });
+
+  /* board */
+  function buildBoard() {
+    var b = $("board");
+    b.innerHTML = "";
+    for (var i = 0; i < 9; i++) {
+      var c = document.createElement("button");
+      c.type = "button";
+      c.className = "cell";
+      c.setAttribute("role", "gridcell");
+      c.setAttribute("aria-label", "خانة " + (i + 1));
+      c.dataset.i = i;
+      c.addEventListener("click", onCell);
+      b.appendChild(c);
+    }
+  }
+
+  function markSVG(p) {
+    var s = document.createElementNS(NS, "svg");
+    s.setAttribute("viewBox", "0 0 100 100");
+    if (p === "X") {
+      s.innerHTML = '<path class="mk a" pathLength="1" d="M24 24L76 76"/><path class="mk b" pathLength="1" d="M76 24L24 76"/>';
+    } else {
+      s.innerHTML = '<circle class="mk" pathLength="1" cx="50" cy="50" r="28" transform="rotate(-90 50 50)"/>';
+    }
+    return s;
+  }
+
+  function onCell(e) {
+    var i = +e.currentTarget.dataset.i;
+    if (st.over || st.board[i]) return;
+    var p = st.turn;
+    st.board[i] = p;
+    var c = e.currentTarget;
+    c.classList.add("filled", p.toLowerCase());
+    c.appendChild(markSVG(p));
+    c.setAttribute("aria-label", "خانة " + (i + 1) + " " + p);
+    c.disabled = true;
+    sndMove(p);
+
+    var line = winnerLine(p);
+    if (line) return finish(p, line);
+    if (st.board.every(Boolean)) return finish(null, null);
+    st.turn = p === "X" ? "O" : "X";
+    updateUI();
+  }
+
+  function winnerLine(p) {
+    for (var k = 0; k < LINES.length; k++) {
+      var L = LINES[k];
+      if (st.board[L[0]] === p && st.board[L[1]] === p && st.board[L[2]] === p) return L;
+    }
+    return null;
+  }
+
+  function drawWinLine(L) {
+    var wrap = $("boardWrap").getBoundingClientRect();
+    var cells = $("board").children;
+    function ctr(i) {
+      var r = cells[i].getBoundingClientRect();
+      return { x: r.left - wrap.left + r.width / 2, y: r.top - wrap.top + r.height / 2 };
+    }
+    var a = ctr(L[0]), z = ctr(L[2]);
+    var dx = z.x - a.x, dy = z.y - a.y, len = Math.hypot(dx, dy) || 1;
+    var ext = cells[0].getBoundingClientRect().width * 0.28;
+    var ux = dx / len, uy = dy / len;
+    var s = $("winline");
+    s.setAttribute("viewBox", "0 0 " + wrap.width + " " + wrap.height);
+    s.innerHTML = '<line pathLength="1" x1="' + (a.x - ux * ext) + '" y1="' + (a.y - uy * ext) + '" x2="' + (z.x + ux * ext) + '" y2="' + (z.y + uy * ext) + '"/>';
+  }
+
+  function finish(p, line) {
+    st.over = true;
+    var cells = $("board").children;
+    for (var i = 0; i < 9; i++) cells[i].disabled = true;
+    if (p) {
+      st.score[p]++;
+      drawWinLine(line);
+      for (var j = 0; j < 9; j++) if (line.indexOf(j) < 0) cells[j].classList.add("dim");
+    } else {
+      st.score.D++;
+    }
+    updateUI(p);
+    clearTimeout(st.timer);
+    st.timer = setTimeout(function () { showModal(p); }, p ? 1100 : 650);
+  }
+
+  function updateUI(winner) {
+    $("nX").textContent = nameOf("X");
+    $("nO").textContent = nameOf("O");
+    $("sX").textContent = st.score.X;
+    $("sO").textContent = st.score.O;
+    $("sD").textContent = st.score.D;
+    $("pX").classList.toggle("on", !st.over && st.turn === "X");
+    $("pO").classList.toggle("on", !st.over && st.turn === "O");
+    var s = $("status");
+    if (st.over) {
+      s.textContent = winner ? "الفايز: " + nameOf(winner) : "تعادل";
+    } else {
+      s.innerHTML = '<span class="dot ' + st.turn.toLowerCase() + '">' + st.turn + '</span><span></span>';
+      s.lastChild.textContent = "دور " + nameOf(st.turn);
+    }
+  }
+
+  function newRound(toggle) {
+    clearTimeout(st.timer);
+    if (toggle) st.starter = st.starter === "X" ? "O" : "X";
+    st.board = Array(9).fill(null);
+    st.turn = st.starter;
+    st.over = false;
+    $("winline").innerHTML = "";
+    buildBoard();
+    $("modal").hidden = true;
+    updateUI();
+  }
+
+  /* modal */
+  function showModal(p) {
+    var card = $("mCard");
+    card.className = "modal-card" + (p ? " " + p.toLowerCase() + "win" : "");
+    $("trophy").style.display = p ? "" : "none";
+    if (p) {
+      $("mKicker").textContent = "الفائز في المباراة";
+      $("mTitle").textContent = nameOf(p);
+      $("mSub").textContent = "مبروك يا بطل! النتيجة " + st.score.X + " - " + st.score.O;
+      sndWin();
+      confetti(p);
+    } else {
+      $("mKicker").textContent = "نهاية المباراة";
+      $("mTitle").textContent = "تعادل";
+      $("mSub").textContent = nameOf("X") + " و " + nameOf("O") + " الاتنين قدّ بعض";
+      sndDraw();
+    }
+    $("modal").hidden = false;
+    $("mAgain").focus();
+  }
+
+  /* confetti */
+  var fx = $("fx"), fctx = fx.getContext("2d"), parts = [], raf = 0;
+  function sizeFx() {
+    var d = window.devicePixelRatio || 1;
+    fx.width = innerWidth * d; fx.height = innerHeight * d;
+    fctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  addEventListener("resize", sizeFx);
+  function confetti(p) {
+    if (reduce) return;
+    sizeFx();
+    var base = p === "X" ? "#f5b53d" : "#33d8c5";
+    var cols = [base, "#ffffff", "#f5b53d", "#33d8c5"];
+    parts = [];
+    for (var i = 0; i < 130; i++) {
+      parts.push({
+        x: innerWidth / 2 + (Math.random() - 0.5) * 120,
+        y: innerHeight * 0.42,
+        vx: (Math.random() - 0.5) * 12,
+        vy: -Math.random() * 13 - 3,
+        w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+        r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+        c: cols[(Math.random() * cols.length) | 0], life: 0
+      });
+    }
+    cancelAnimationFrame(raf);
+    (function tick() {
+      fctx.clearRect(0, 0, innerWidth, innerHeight);
+      var alive = 0;
+      parts.forEach(function (q) {
+        q.life++; q.vy += 0.34; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.r += q.vr;
+        if (q.y < innerHeight + 30 && q.life < 220) {
+          alive++;
+          fctx.save(); fctx.translate(q.x, q.y); fctx.rotate(q.r);
+          fctx.globalAlpha = Math.max(0, 1 - q.life / 220);
+          fctx.fillStyle = q.c; fctx.fillRect(-q.w / 2, -q.h / 2, q.w, q.h);
+          fctx.restore();
+        }
+      });
+      if (alive) raf = requestAnimationFrame(tick); else fctx.clearRect(0, 0, innerWidth, innerHeight);
+    })();
+  }
+
+  /* flow */
+  function show(which) {
+    $("setup").hidden = which !== "setup";
+    $("game").hidden = which !== "game";
+  }
+
+  $("setupForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    st.names.X = $("nameX").value.trim();
+    st.names.O = $("nameO").value.trim();
+    try { localStorage.setItem("jabour-xo-names", JSON.stringify(st.names)); } catch (er) {}
+    st.score = { X: 0, O: 0, D: 0 };
+    st.starter = "X";
+    show("game");
+    newRound(false);
+    tone(660, 0.12, "triangle");
+  });
+
+  function backToNames() {
+    clearTimeout(st.timer);
+    $("modal").hidden = true;
+    show("setup");
+    $("nameX").focus();
+  }
+
+  $("againBtn").addEventListener("click", function () { newRound(!st.over ? false : true); });
+  $("mAgain").addEventListener("click", function () { newRound(true); });
+  $("namesBtn").addEventListener("click", backToNames);
+  $("mNames").addEventListener("click", backToNames);
+  addEventListener("resize", function () {
+    if (st.over) {
+      for (var k = 0; k < LINES.length; k++) {
+        var L = LINES[k], p = st.board[L[0]];
+        if (p && st.board[L[1]] === p && st.board[L[2]] === p) { drawWinLine(L); break; }
+      }
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !$("modal").hidden) $("modal").hidden = true;
+  });
+
+  buildBoard();
+})();
+</script>
+
+</body>
+</html>
